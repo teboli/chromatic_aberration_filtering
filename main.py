@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import time
 import tqdm
 
-import filter
+# import filter
+import filter_recursive as filter
 
 tau = 15
 gamma_1 = 128

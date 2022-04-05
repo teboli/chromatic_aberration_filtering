@@ -97,7 +97,7 @@ def ti_and_ca_filtering1D(X_in, G_in, Y_in, L, rho, alpha_X, tau):
 
         ###### Transient improvement filtering
         ## Compute min and max on windows (Eqs. (2) and (3))
-        X_in_L_max, X_in_L_min = compute_local_max_and_min(X_in_L)  # (M,N) arrays
+        X_in_L_max, X_in_L_min = compute_local_max_and_min(X_in_L)  # (M,N) arrays  # TODO: recursive
 
         ## Main TI process (Eq. (1))
         mask = X_in_L[:, L] > G_in_L[:, L]
@@ -113,11 +113,7 @@ def ti_and_ca_filtering1D(X_in, G_in, Y_in, L, rho, alpha_X, tau):
 
         ## Clipping the filtered imaged in the admissible set on values (Eq. (5))
         X_TI = np.clip(X_pf, a_min=X_TImin, a_max=X_TImax)  # (M, 2L+1)
-
-
         K_TI_hor[:, j] = X_TI[:, L] - G_in_L[:, L]  # (M, 1)
-        # K_TI_hor[:, j] = X_in_L[:, L] - G_in_L[:, L]  # (M, 1)
-
 
         X_max[:, j] = np.squeeze(X_in_L_max, 1)
         X_min[:, j] = np.squeeze(X_in_L_min, 1)
@@ -134,7 +130,8 @@ def ti_and_ca_filtering1D(X_in, G_in, Y_in, L, rho, alpha_X, tau):
         W_K = S_K * w_K  # (M, 2L+1)
 
         ## Linear filtering with clipping (Eqs. (9) and (10))
-        K_hor[:, j] = np.sum(W_K * clip(K_TI, K_TI[..., L]), axis=-1) / np.sum(W_K, axis=-1)  # (M, 1)
+        W_K = W_K / np.sum(W_K, axis=-1, keepdims=True)  # (M, 2*L+1)
+        K_hor[:, j] = np.einsum('ij,ij->i', W_K, clip(K_TI, K_TI[..., L]))  # (M, 1)
 
     return K_hor, K_TI_hor, X_max, X_min
 
