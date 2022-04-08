@@ -5,72 +5,94 @@ import numpy as np
 # currently part of the Cython distribution).
 cimport numpy as np
 
+from cython.parallel import prange
+from libc.math cimport min, max, abs
+
 # It's necessary to call "import_array" if you use any part of the
 # numpy PyArray_* API. From Cython 3, accessing attributes like
 # ".shape" on a typed Numpy array use this API. Therefore we recommend
 # always calling "import_array" whenever you "cimport numpy"
 np.import_array()
 
-# We now need to fix a datatype for our arrays. I've used the variable
-# DTYPE for this, which is assigned to the usual NumPy runtime
-# type info object.
-DTYPE = np.floatc
-
 # "ctypedef" assigns a corresponding compile-time type to DTYPE_t. For
 # every type in the numpy module there's a corresponding compile-time
 # type with a _t-suffix.
 ctypedef np.float32_t DTYPE_t
+ctypedef np.uint8_t uint8
 
-
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, unsigned int L_hor=7, unsigned int L_ver=4,
-                      np.ndarray[DTYPE_t, ndim=1] rho=np.array((-0.25, 1.375, -0.125)),
-                      float tau=15./255, float gamma_1=0.5, float gamma_2=0.25):
-    assert I_in.dtype == DTYPE
+                      np.ndarray[DTYPE_t, ndim=1] rho), DTYPE_t tau=15./255, DTYPE_t gamma_1=0.5, 
+                      DTYPE_t gamma_2=0.25):
+    assert I_in.dtype == DTYPE_t
+
+    cdef Py_ssize_t M, N, i, j
+    M = I_in.shape[0]
+    N = I_in.shape[1]
 
     ## Introduction
-    cdef np.ndarray[DTYPE_t, ndim=2] R_in = I_in[..., 0]
-    cdef np.ndarray[DTYPE_t, ndim=2] G_in = I_in[..., 1]
-    cdef np.ndarray[DTYPE_t, ndim=2] B_in = I_in[..., 2]
-    cdef np.ndarray[DTYPE_t, ndim=2] Y_in = 0.299 * R_in + 0.587 * G_in + 0.114 * B_in
+    cdef np.ndarray[DTYPE_t, ndim=2] R_in = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] G_in = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] B_in = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] Y_in = np.zeros(M, N)
+    for i in prange(M, nogil=True):
+        for j in range(N, nogil=True):
+            R_in[i, j] = I_in[i, j, 0]
+            G_in[i, j] = I_in[i, j, 1]
+            B_in[i, j] = I_in[i, j, 2]
+            Y_in[i, j] = 0.299 * R_in[i, j] + 0.587 * G_in[i, j] + 0.114 * B_in
 
     ## Filtering
     # Horizontal pass
-    cdef np.ndarray[DTYPE_t, ndim=2] K_r_hor, K_rTI_hor, R_max_hor, R_min_hor
-    cdef np.ndarray[DTYPE_t, ndim=2] K_b_hor, K_bTI_hor, B_max_hor, B_min_hor
-    K_r_hor, K_rTI_hor, R_max_hor, R_min_hor = ti_and_ca_filtering1D(R_in, G_in, Y_in, L_hor, rho=rho,
-                                                                     tau=tau, alpha_X=0.5)
-    K_b_hor, K_bTI_hor, B_max_hor, B_min_hor = ti_and_ca_filtering1D(B_in, G_in, Y_in, L_hor, rho=rho,
-                                                                     tau=tau, alpha_X=1.0)
+    cdef np.ndarray[DTYPE_t, ndim=2] K_r_hor = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] K_rTI_hor = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] R_max_hor = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] R_min_hor = np.zeros(M, N)
+    ti_and_ca_filtering1D(R_in, G_in, Y_in, L_hor, rho, tau, 0.5)
+    cdef np.ndarray[DTYPE_t, ndim=2] K_b_hor = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] K_bTI_hor = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] B_max_hor = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] B_min_hor = np.zeros(M, N)
+    ti_and_ca_filtering1D(B_in, G_in, Y_in, L_hor, rho, tau, 1.0)
 
-    # Vertical pass
+    # Vertical pass TODO
     cdef np.ndarray[DTYPE_t, ndim=2] K_r_ver, K_rTI_ver, R_max_ver, R_min_ver
     cdef np.ndarray[DTYPE_t, ndim=2] K_b_ver, K_bTI_ver, B_max_ver, B_min_ver
-    K_r_ver, K_rTI_ver, R_max_ver, R_min_ver = ti_and_ca_filtering1D(R_in.T, G_in.T, Y_in.T, L_ver, rho=rho,
-                                                                     tau=tau, alpha_X=0.5)
-    K_b_ver, K_bTI_ver, B_max_ver, B_min_ver = ti_and_ca_filtering1D(B_in.T, G_in.T, Y_in.T, L_ver, rho=rho,
-                                                                     tau=tau, alpha_X=1.0)
-    K_r_ver = K_r_ver.T
-    K_b_ver = K_b_ver.T
-    K_rTI_ver = K_rTI_ver.T
-    K_bTI_ver = K_bTI_ver.T
-    R_max_ver = R_max_ver.T
-    B_max_ver = B_max_ver.T
-    R_min_ver = R_min_ver.T
-    B_min_ver = B_min_ver.T
+    K_r_ver, K_rTI_ver, R_max_ver, R_min_ver = ti_and_ca_filtering1D(R_in.transpose(1, 0), 
+                                                                    G_in.transpose(1, 0), Y_in.transpose(1, 0), L_ver, rho,
+                                                                     tau, 0.5)
+    K_b_ver, K_bTI_ver, B_max_ver, B_min_ver = ti_and_ca_filtering1D(B_in.transpose(1, 0), G_in.transpose(1, 0), Y_in.transpose(1, 0), L_ver, rho,
+                                                                     tau, 1.0)
+    K_r_ver = K_r_ver.transpose(1, 0)
+    K_b_ver = K_b_ver.transpose(1, 0)
+    K_rTI_ver = K_rTI_ver.transpose(1, 0)
+    K_bTI_ver = K_bTI_ver.transpose(1, 0)
+    R_max_ver = R_max_ver.transpose(1, 0)
+    B_max_ver = B_max_ver.transpose(1, 0)
+    R_min_ver = R_min_ver.transpose(1, 0)
+    B_min_ver = B_min_ver.transpose(1, 0)
 
     ## Arbitration
-    cdef np.ndarray mask
+    cdef np.ndarray[uint8, ndim=2] mask
     # Build the 2D images from the vertically and the horizontally FC filtered images (Eqs. (16))
     # Kb
     cdef np.ndarray[DTYPE_t, ndim=2] K_b
     K_b = K_b_ver
     mask = np.abs(K_b_hor) < np.abs(K_b_ver)
-    K_b[mask] = K_b_hor[mask]
+    for i in prange(M, nogil=True):
+        for j in prange(N, nogil=True):
+            if mask[i, j]:
+                K_b[i, j] = K_b_hor[i, j]
     #Kr
     cdef np.ndarray[DTYPE_t, ndim=2] K_r
     K_r = K_r_ver
     mask = np.abs(K_r_hor) < np.abs(K_r_ver)
-    K_r[mask] = K_r_hor[mask]
+    for i in prange(M, nogil=True):
+        for j in prange(N, nogil=True):
+            if mask[i, j]:
+                K_r[i, j] = K_r_hor[i, j]
 
     # Build the 2D images from the vertically and the horizontally TI filtered images (Eqs. (18))
     # Kb
@@ -81,9 +103,12 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, unsigned int L_hor=7, un
     B_max = B_max_ver
     B_min = B_min_ver
     mask = np.abs(K_bTI_hor) < np.abs(K_bTI_ver)
-    K_bTI[mask] = K_bTI_hor[mask]
-    B_max[mask] = B_max_hor[mask]
-    B_min[mask] = B_min_hor[mask]
+    for i in prange(M, nogil=True):
+        for j in prange(N, nogil=True):
+            if mask[i, j]:
+                K_bTI[i, j] = K_bTI_hor[i, j]
+                B_max[i, j] = B_max_hor[i, j]
+                B_min[i, j] = B_min_hor[i, j]
 
     # Kr
     cdef np.ndarray[DTYPE_t, ndim=2] K_rTI
@@ -93,9 +118,12 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, unsigned int L_hor=7, un
     R_max = R_max_ver
     R_min = R_min_ver
     mask = np.abs(K_rTI_hor) < np.abs(K_rTI_ver)
-    K_rTI[mask] = K_rTI_hor[mask]
-    R_max[mask] = R_max_hor[mask]
-    R_min[mask] = R_min_hor[mask]
+    for i in prange(M, nogil=True):
+        for j in prange(N, nogil=True):
+            if mask[i, j]:
+                K_rTI[i, j] = K_rTI_hor[i, j]
+                R_max[i, j] = R_max_hor[i, j]
+                R_min[i, j] = R_min_hor[i, j]
 
     # Contrast arbitration
     cdef np.ndarray[DTYPE_t, ndim=2] K_rout
@@ -109,26 +137,29 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, unsigned int L_hor=7, un
     return np.stack([K_rout + G_in, G_in, K_bout + G_in], axis=-1)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 def ti_and_ca_filtering1D(np.ndarray[DTYPE_t, ndim=2] X_in, np.ndarray[DTYPE_t, ndim=2] G_in,
                           np.ndarray[DTYPE_t, ndim=2] Y_in, int L, np.ndarray[DTYPE_t, ndim=1] rho,
-                          float alpha_X, float tau):
-    cdef int LL = 2 * L + 1
+                          DTYPE_t alpha_X, DTYPE_t tau):
+    cdef Py_ssize_t LL = 2 * L + 1
     cdef np.ndarray[DTYPE_t, ndim=2] X_in_padded = np.pad(X_in, [(0, 0), (L, L)], mode='edge')  # (M, N+2*L)
     cdef np.ndarray[DTYPE_t, ndim=2] G_in_padded = np.pad(G_in, [(0, 0), (L, L)], mode='edge')  # (M, N+2*L)
     cdef np.ndarray[DTYPE_t, ndim=2] Y_in_padded = np.pad(Y_in, [(0, 0), (L, L)], mode='edge')  # (M, N+2*L)
 
-    cdef np.ndarray[DTYPE_t, ndim=2] grad_X = np.pad(np.diff(X_in_padded, 1, axis=-1), [(0, 0), (0, 1)],
+    cdef np.ndarray[DTYPE_t, ndim=2] grad_X = np.pad(np.diff(X_in_padded, 1, axis=1), [(0, 0), (0, 1)],
                                                      mode='edge')  # (M, N+2*L)
-    cdef np.ndarray[DTYPE_t, ndim=2] grad_G = np.pad(np.diff(G_in_padded, 1, axis=-1), [(0, 0), (0, 1)],
+    cdef np.ndarray[DTYPE_t, ndim=2] grad_G = np.pad(np.diff(G_in_padded, 1, axis=1), [(0, 0), (0, 1)],
                                                      mode='edge')  # (M, N+2*L)
 
-    cdef np.ndarray[DTYPE_t, ndim=2] K_TI_hor = np.zeros_like(X_in)
-    cdef np.ndarray[DTYPE_t, ndim=2] K_hor = np.zeros_like(X_in)
-    cdef np.ndarray[DTYPE_t, ndim=2] X_max = np.zeros_like(X_in)
-    cdef np.ndarray[DTYPE_t, ndim=2] X_min = np.zeros_like(X_in)
-    cdef int M, N
+    cdef Py_ssize_t M, N, j
     M = X_in.shape[0]
     N = X_in.shape[1]
+    cdef np.ndarray[DTYPE_t, ndim=2] K_TI_hor = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] K_hor = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] X_max = np.zeros(M, N)
+    cdef np.ndarray[DTYPE_t, ndim=2] X_min = np.zeros(M, N)
 
     cdef np.ndarray X_in_L, G_in_L, Y_in_L, grad_X_L, grad_G_L, X_in_L_max, X_in_L_min, mask, mask_not
     cdef np.ndarray X_pf, X_TImax, X_TImin, X_TI, K_TI, S_K, w_K, W_K
@@ -175,46 +206,55 @@ def ti_and_ca_filtering1D(np.ndarray[DTYPE_t, ndim=2] X_in, np.ndarray[DTYPE_t, 
         W_K = S_K * w_K  # (M, 2L+1)
 
         ## Linear filtering with clipping (Eqs. (9) and (10))
-        W_K = W_K / np.sum(W_K, axis=-1, keepdims=True)  # (M, 2*L+1)
+        W_K = W_K / np.sum(W_K, axis=1, keepdims=True)  # (M, 2*L+1)
         K_hor[:, j] = np.einsum('ij,ij->i', W_K, clip(K_TI, K_TI[..., L]))  # (M, 1)
 
     return K_hor, K_TI_hor, X_max, X_min
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 def compute_local_max_and_min(np.ndarray[DTYPE_t, ndim=2] X):
-    cdef int LL = X.shape[-1]  # (M, 2L+1)
+    cdef int LL = X.shape[1]  # (M, 2L+1)
     cdef int L = (LL-1) // 2
 
     ## compute min and max in two directions
-    cdef np.ndarray[DTYPE_t, ndim=2] X_Emax = np.max(X[:, -L-1:], axis=-1, keepdims=True)  # (N,1)
-    cdef np.ndarray[DTYPE_t, ndim=2] X_Emin = np.min(X[:, -L-1:], axis=-1, keepdims=True)  # (N,1)
+    cdef np.ndarray[DTYPE_t, ndim=2] X_Emax = np.max(X[:, L:], axis=-1, keepdims=True)  # (N,1)
+    cdef np.ndarray[DTYPE_t, ndim=2] X_Emin = np.min(X[:, L:], axis=-1, keepdims=True)  # (N,1)
     cdef np.ndarray[DTYPE_t, ndim=2] X_Wmax = np.max(X[:, :L+1], axis=-1, keepdims=True)  # (N,1)
     cdef np.ndarray[DTYPE_t, ndim=2] X_Wmin = np.min(X[:, :L+1], axis=-1, keepdims=True)  # (N,1)
 
     ## Select the best values
     cdef np.ndarray[DTYPE_t, ndim=2] X_max = X_Wmax
     cdef np.ndarray[DTYPE_t, ndim=2] X_min = X_Emin
-    cdef np.ndarray mask = X_Emax - X_Wmin >= X_Wmax - X_Emin
+    cdef np.ndarray[uint8, ndim=2] mask = X_Emax - X_Wmin >= X_Wmax - X_Emin
     X_max[mask] = X_Emax[mask]
     X_min[mask] = X_Wmin[mask]
 
     return X_max, X_min
 
 
-def compute_S_K(np.ndarray[DTYPE_t, ndim=2] K, float tau):
-    cdef int LL = K.shape[-1]  # (M, 2L+1)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+def compute_S_K(np.ndarray[DTYPE_t, ndim=2] K, DTYPE_t tau):
+    cdef int LL = K.shape[1]  # (M, 2L+1)
     cdef int L = (LL-1) // 2
     cdef np.ndarray[DTYPE_t, ndim=2] K_ref = K[:, L:L+1]  # (M, 1)
     ## Compute S_K (Eq. (11))
     cdef np.ndarray[DTYPE_t, ndim=2] S = np.zeros_like(K)
-    cdef np.ndarray mask = np.bitwise_or(np.sign(K_ref) == np.sign(K), np.abs(K) < tau)
+    cdef np.ndarray[uint8, ndim=2] mask = np.bitwise_or(np.sign(K_ref) == np.sign(K), np.abs(K) < tau)
     S[mask] = 1
     return S
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 def compute_w_K(np.ndarray[DTYPE_t, ndim=2] K, np.ndarray[DTYPE_t, ndim=2] grad_X, np.ndarray[DTYPE_t, ndim=2] grad_G,
-                np.ndarray[DTYPE_t, ndim=2] Y, float alpha_X):
-    cdef int LL = K.shape[-1]  # (M, 2L+1)
+                np.ndarray[DTYPE_t, ndim=2] Y, DTYPE_t alpha_X):
+    cdef int LL = K.shape[1]  # (M, 2L+1)
     cdef int L = (LL - 1) // 2
     cdef np.ndarray[DTYPE_t, ndim=2] Y_ref = Y[:, L:L + 1]  # (M, 1)
     ## Compute w_K (Eqs (12), (13), (14) and (15))
@@ -230,16 +270,20 @@ def compute_w_K(np.ndarray[DTYPE_t, ndim=2] K, np.ndarray[DTYPE_t, ndim=2] grad_
 
 def clip(np.ndarray[DTYPE_t, ndim=2] K, np.ndarray[DTYPE_t, ndim=2] K_ref):
     ## Compute clip (Eq. (9))
-    cdef np.ndarray mask = K_ref > 0
+    cdef np.ndarray[uint8, ndim=2] mask = K_ref > 0
     K[mask] = np.minimum(K[mask], K_ref[mask][:, None])
+
     mask = K_ref < 0
     K[mask] = np.maximum(K[mask], K_ref[mask][:, None])
     return K
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
 def arbitration(np.ndarray[DTYPE_t, ndim=2] K, np.ndarray[DTYPE_t, ndim=2] K_TI, np.ndarray[DTYPE_t, ndim=2] X,
                 np.ndarray[DTYPE_t, ndim=2] G, np.ndarray[DTYPE_t, ndim=2] X_max, np.ndarray[DTYPE_t, ndim=2] X_min,
-                float beta_X, int L_hor, int L_ver, float gamma_1=0.5, float gamma_2=0.25):
+                DTYPE_t beta_X, DTYPE_t L_hor, DTYPE_t L_ver, DTYPE_t gamma_1=0.5, DTYPE_t gamma_2=0.25):
     cdef int M, N
     M = X.shape[0]
     N = X.shape[1]
@@ -253,6 +297,8 @@ def arbitration(np.ndarray[DTYPE_t, ndim=2] K, np.ndarray[DTYPE_t, ndim=2] K_TI,
     ## Compute the Contrast images (Eq. (20))
     cdef np.ndarray[DTYPE_t, ndim=2] X_contrast_hor = np.zeros_like(X)  # (M, N), horizontal pass
     cdef np.ndarray[DTYPE_t, ndim=2] X_L, G_L, Xp_max, Xp_min
+    cdef Py_ssize_t j
+
     for j in range(N):
         X_L = X_padded[:, j:j+LL]  # (M, 2*L_hor+1)
         G_L = G_padded[:, j:j+LL]  # (N, 2*L_hor+1)
@@ -275,12 +321,12 @@ def arbitration(np.ndarray[DTYPE_t, ndim=2] K, np.ndarray[DTYPE_t, ndim=2] K_TI,
 
     ## Compute X_contrast (Eq. (21))
     cdef np.ndarray[DTYPE_t, ndim=2] X_contrast = X_contrast_ver
-    cdef np.ndarray mask = X_contrast_hor > X_contrast_ver
+    cdef np.ndarray[uint8, ndim=2] mask = X_contrast_hor > X_contrast_ver
     X_contrast[mask] = X_contrast_hor[mask]
 
     ## Compute the arbitration weight (Eq. (22))
-    cdef np.ndarray[DTYPE_t, ndim=2] alpha_K = compute_alpha_K(X_contrast, X_max=X_max, X_min=X_min,
-                                              gamma_1=gamma_1, gamma_2=gamma_2)
+    cdef np.ndarray[DTYPE_t, ndim=2] alpha_K
+    compute_alpha_K(X_contrast, X_max, X_min, gamma_1=gamma_1, gamma_2=gamma_2, out=alpha_K)
 
     ## Finally compute the final filtered image (Eq. (17))
     cdef np.ndarray[DTYPE_t, ndim=2] K_out = (1 - alpha_K) * K_TI + alpha_K * K
@@ -288,35 +334,58 @@ def arbitration(np.ndarray[DTYPE_t, ndim=2] K, np.ndarray[DTYPE_t, ndim=2] K_TI,
     return K_out
 
 
-def compute_local_max_and_min_color_constraints(np.ndarray X, np.ndarray G, float beta):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+def compute_local_max_and_min_color_constraints(np.ndarray[DTYPE_t, ndim=2] X, np.ndarray[DTYPE_t, ndim=2] G, DTYPE_t beta):
     ## Recompute updated local max and min (Eq .(19))
     cdef int LL = X.shape[-1]  # (M, 2L+1)
     cdef int L = (LL-1) // 2
 
     ## compute min and max in two directions
-    cdef np.ndarray[DTYPE_t, ndim=2] X_Emax = np.max(X[:, -L-1:] - beta * np.abs(X[:, -L-1:] - G[:, -L-1:]),
-                                                     axis=-1, keepdims=True)  # (M,1)
-    cdef np.ndarray[DTYPE_t, ndim=2] X_Emin = np.min(X[:, -L-1:] + beta * np.abs(X[:, -L-1:] - G[:, -L-1:]),
-                                                     axis=-1, keepdims=True)  # (M,1)
+    cdef np.ndarray[DTYPE_t, ndim=2] X_Emax = np.max(X[:, L:] - beta * np.abs(X[:, -L-1:] - G[:, -L-1:]),
+                                                     axis=1, keepdims=True)  # (M,1)
+    cdef np.ndarray[DTYPE_t, ndim=2] X_Emin = np.min(X[:, L:] + beta * np.abs(X[:, -L-1:] - G[:, -L-1:]),
+                                                     axis=1, keepdims=True)  # (M,1)
     cdef np.ndarray[DTYPE_t, ndim=2] X_Wmax = np.max(X[:, :L+1] - beta * np.abs(X[:, :L+1] - G[:, :L+1]),
-                                                     axis=-1, keepdims=True)  # (M,1)
+                                                     axis=1, keepdims=True)  # (M,1)
     cdef np.ndarray[DTYPE_t, ndim=2] X_Wmin = np.min(X[:, :L+1] + beta * np.abs(X[:, :L+1] - G[:, :L+1]),
-                                                     axis=-1, keepdims=True)  # (M,1)
+                                                     axis=1, keepdims=True)  # (M,1)
 
     ## Select the best values
     cdef np.ndarray[DTYPE_t, ndim=2] X_max = X_Wmax
     cdef np.ndarray[DTYPE_t, ndim=2] X_min = X_Emin
-    cdef np.ndarray mask = X_Emax - X_Wmin >= X_Wmax - X_Emin
+    cdef np.ndarray[uint8, ndim=2] mask = X_Emax - X_Wmin >= X_Wmax - X_Emin
     X_max[mask] = X_Emax[mask]
     X_min[mask] = X_Wmin[mask]
 
     return X_max, X_min
 
 
-def compute_alpha_K(np.ndarray[DTYPE_t, ndim=2] X, np.ndarray[DTYPE_t, ndim=2] X_max=None,
-                    np.ndarray[DTYPE_t, ndim=2] X_min=None, float gamma_1=0.5, float gamma_2=0.25):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+cdef compute_alpha_K(DTYPE_t[:, ::1] X, DTYPE_t[:, ::1] X_max,
+        DTYPE_t[:, ::1] X_min, DTYPE_t gamma_1=0.5, DTYPE_t gamma_2=0.25, DTYPE_t[:, ::1] out):
     ## Compute alpha_K using f_2 in the paper (Eqs. (22) and (23))
-    cdef np.ndarray[DTYPE_t, ndim=2] num = np.maximum(X, 0)
-    cdef np.ndarray[DTYPE_t, ndim=2] denom
-    denom = np.minimum(np.maximum(X_max - X_min, gamma_2), gamma_1)
-    return np.minimum(num / denom, 1.0)
+    ## wcrire boucle qui calcule max
+    
+    
+    # cdef DTYPE_t[:, ::1] num = np.maximum(X, 0)
+    # def np.ndarray[DTYPE_t, ndim=2] denom
+    # [:,::1]  
+    # denom = np.minimum(np.maximum(X_max - X_min, gamma_2), gamma_1)
+    # return np.minimum(num / denom, 1.0)
+
+    cdef Py_ssize_t i, j, N, M
+    N = X.shape[0]
+    M = X.shape[1]
+
+    cdef DTYPE_t num, denom
+    
+    for i in prange(N, nogil=True):
+        for j in prange(M, nogil=True):
+            num = max(X[i,j], 0.0) 
+            denom = min(max(X_max[i,j] - X_min[i,j], gamma_2), gamma_1)
+            out[i,j] = min(num / denom, 1.0)
+

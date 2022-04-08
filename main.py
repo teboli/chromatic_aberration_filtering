@@ -5,7 +5,8 @@ import time
 import tqdm
 
 # import filter
-import filter_recursive as filter
+import filter_cython as filter
+# import filter_recursive as filter
 
 tau = 15
 gamma_1 = 128
@@ -18,8 +19,10 @@ img = img_as_float32(io.imread(impath)); tau /= 255; gamma_1 /= 255; gamma_2 /= 
 # img = transform.rescale(img, scale=(0.25, 0.25, 1))
 # img = transform.rescale(img, scale=(0.5, 0.5, 1))
 
+rho = np.array([-0.25, 1.375, -0.125], dtype=img.dtype)
+
 tic = time.time()
-impred = filter.chromatic_removal(img, tau=tau, gamma_1=gamma_1, gamma_2=gamma_2)
+impred = filter.chromatic_removal(img, rho=rho, tau=tau, gamma_1=gamma_1, gamma_2=gamma_2)
 toc = time.time()
 
 print("Elapsed time: %2.2f sec" % (toc - tic))
