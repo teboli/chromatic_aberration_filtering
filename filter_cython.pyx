@@ -6,7 +6,7 @@ cimport cython
 # currently part of the Cython distribution).
 cimport numpy as np
 
-# from cython.parallel cimport prange
+from cython.parallel cimport prange
 from libc.math cimport fmin, fmax, fabs
 
 # It's necessary to call "import_array" if you use any part of the
@@ -33,8 +33,8 @@ cdef DTYPE_t[:, ::1] transpose(DTYPE_t[:, ::1] X):
     cdef Py_ssize_t i, j
     cdef DTYPE_t[:, ::1] Xt = np.zeros((N, M), dtype=DTYPE)
 
-    for i in range(0, M, 1):
-    # for i in prange(0, M, 1, nogil=True):
+    # for i in range(0, M, 1):
+    for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
             Xt[j, i] = X[i, j]
     return Xt
@@ -55,8 +55,8 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, int L_hor, int L_ver,
     cdef DTYPE_t[:, ::1] G_in = np.zeros((M, N), dtype=DTYPE)
     cdef DTYPE_t[:, ::1] B_in = np.zeros((M, N), dtype=DTYPE)
     cdef DTYPE_t[:, ::1] Y_in = np.zeros((M, N), dtype=DTYPE)
-    for i in range(0, M, 1):
-    # for i in prange(0, M, 1, nogil=True):
+    # for i in range(0, M, 1):
+    for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
             R_in[i, j] = I_in[i, j, 0]
             G_in[i, j] = I_in[i, j, 1]
@@ -113,16 +113,16 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, int L_hor, int L_ver,
     # Build the 2D images from the vertically and the horizontally FC filtered images (Eqs. (16))
     # Kb
     cdef DTYPE_t[:, ::1] K_b = K_b_ver
-    for i in range(0, M, 1):
-    # for i in prange(0, M, 1, nogil=True):
+    # for i in range(0, M, 1):
+    for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
             if fabs(K_b_hor[i, j]) < fabs(K_b_ver[i, j]):
                 K_b[i, j] = K_b_hor[i, j]
 
     #Kr
     cdef DTYPE_t[:, ::1] K_r = K_r_ver
-    for i in range(0, M, 1):
-    # for i in prange(0, M, 1, nogil=True):
+    # for i in range(0, M, 1):
+    for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
             if fabs(K_r_hor[i, j]) < fabs(K_r_ver[i, j]):
                 K_r[i, j] = K_r_hor[i, j]
@@ -132,8 +132,8 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, int L_hor, int L_ver,
     cdef DTYPE_t[:, ::1] K_bTI = K_bTI_ver
     cdef DTYPE_t[:, ::1] B_max = B_max_ver
     cdef DTYPE_t[:, ::1] B_min = B_min_ver
-    for i in range(0, M, 1):
-    # for i in prange(0, M, 1, nogil=True):
+    # for i in range(0, M, 1):
+    for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
             if fabs(K_bTI_hor[i, j]) < fabs(K_bTI_ver[i, j]):
                 K_bTI[i, j] = K_bTI_hor[i, j]
@@ -144,8 +144,8 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, int L_hor, int L_ver,
     cdef DTYPE_t[:, ::1] K_rTI = K_rTI_ver
     cdef DTYPE_t[:, ::1] R_max = R_max_ver
     cdef DTYPE_t[:, ::1] R_min = R_min_ver
-    for i in range(0, M, 1):
-    # for i in prange(M, nogil=True):
+    # for i in range(0, M, 1):
+    for i in prange(M, nogil=True):
         for j in range(0, N, 1):
             if fabs(K_rTI_hor[i, j]) < fabs(K_rTI_ver[i, j]):
                 K_rTI[i, j] = K_rTI_hor[i, j]
@@ -163,8 +163,8 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, int L_hor, int L_ver,
 
     # Final RGB conversion (Eq. (24))
     cdef DTYPE_t[:, :, ::1] I_out = np.zeros((M, N, 3), dtype=DTYPE)
-    for i in range(0, M, 1):
-    # for i in prange(0, M, 1, nogil=True):
+    # for i in range(0, M, 1):
+    for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
             I_out[i, j, 0] = K_rout[i, j] + G_in[i, j]
             I_out[i, j, 1] = G_in[i, j]
@@ -178,8 +178,8 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, int L_hor, int L_ver,
 @cython.nonecheck(False)
 cdef void grad(DTYPE_t[:, ::1] X, Py_ssize_t M, Py_ssize_t N, DTYPE_t[:, ::1] grad_X) nogil:
     cdef Py_ssize_t i, j
-    for i in range(0, M, 1):
-    # for i in prange(0, M, 1, nogil=True):
+    # for i in range(0, M, 1):
+    for i in prange(0, M, 1, nogil=True):
         for j in range(1, N, 1):
             grad_X[i, j] = X[i, j] - X[i, j - 1]
 
@@ -245,8 +245,8 @@ cdef void ti_and_ca_filtering1D(DTYPE_t[:, ::1] X_in, DTYPE_t[:, ::1] G_in, DTYP
     cdef DTYPE_t[::1] X_Wmax = np.zeros(M, dtype=DTYPE)
     cdef DTYPE_t[::1] X_Wmin = np.zeros(M, dtype=DTYPE)
 
-    for i in range(L, M - L, 1):
-    # for i in prange(L, M - L, 1, nogil=True):
+    # for i in range(L, M - L, 1):
+    for i in prange(L, M - L, 1, nogil=True):
         for j in range(L, N - L, 1):
             W_K_sum[i] = 0
             X_Emax[i] = X_in[i, j]
@@ -347,8 +347,8 @@ cdef void arbitration(DTYPE_t[:, ::1] K, DTYPE_t[:, ::1] K_TI, DTYPE_t[:, ::1] X
     cdef DTYPE_t[::1] X_Wmax_hor = np.zeros(M, dtype=DTYPE)
     cdef DTYPE_t[::1] X_Wmin_hor = np.zeros(M, dtype=DTYPE)
 
-    for i in range(L, M - L, 1):
-    # for i in prange(L, M - L, 1, nogil=True):
+    # for i in range(L, M - L, 1):
+    for i in prange(L, M - L, 1, nogil=True):
         for j in range(L, N - L, 1):
             X_Emax_hor[i] = X[i, j]
             X_Emin_hor[i] = X[i, j]
@@ -389,8 +389,8 @@ cdef void arbitration(DTYPE_t[:, ::1] K, DTYPE_t[:, ::1] K_TI, DTYPE_t[:, ::1] X
     cdef DTYPE_t[:, ::1] Xt = transpose(X)
     cdef DTYPE_t[:, ::1] Gt = transpose(G)
 
-    for i in range(L, N - L, 1):
-    # for i in prange(L, N - L, 1, nogil=True):
+    # for i in range(L, N - L, 1):
+    for i in prange(L, N - L, 1, nogil=True):
         for j in range(L, M - L, 1):
             X_Emax_ver[i] = Xt[i, j]
             X_Emin_ver[i] = Xt[i, j]
@@ -420,16 +420,16 @@ cdef void arbitration(DTYPE_t[:, ::1] K, DTYPE_t[:, ::1] K_TI, DTYPE_t[:, ::1] X
 
     ## Compute X_contrast (Eq. (21))
     cdef DTYPE_t[:, ::1] X_contrast = X_contrast_ver
-    for i in range(0, M, 1):
-    # for i in prange(0, M, 1, nogil=True):
+    # for i in range(0, M, 1):
+    for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
             if X_contrast_hor[i, j] > X_contrast_ver[i, j]:
                 X_contrast[i, j] = X_contrast_hor[i, j]
 
     ## Compute the arbitration weight (Eq. (22)) and the final filtered image (Eq. (17))
     cdef DTYPE_t [::1] alpha_K = np.zeros(M, dtype=DTYPE)
-    for i in range(0, M, 1):
-    # for i in prange(0, M, 1, nogil=True):
+    # for i in range(0, M, 1):
+    for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
             # alpha_K[i] = fmin(fmax(X_contrast[i, j], 0.0) / gamma_1, 1.0)
             alpha_K[i] = fmin(fmax(X_contrast[i, j], 0.0) / fmin(fmax(X_max[i, j] - X_min[i, j], gamma_2), gamma_1), 1.0)
