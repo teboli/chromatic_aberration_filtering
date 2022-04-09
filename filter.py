@@ -59,6 +59,9 @@ def chromatic_removal(I_in, L_hor=7, L_ver=4, rho=(-0.25, 1.375, -0.125), tau=15
     K_rout = arbitration(K_r, K_rTI, R_in, G_in, R_max, R_min, beta_X=1.0, L_hor=L_hor, L_ver=L_ver, gamma_1=gamma_1, gamma_2=gamma_2)
     K_bout = arbitration(K_b, K_bTI, B_in, G_in, B_max, B_min, beta_X=0.25, L_hor=L_hor, L_ver=L_ver, gamma_1=gamma_1, gamma_2=gamma_2)
 
+    K_rout = K_rTI
+    K_bout = K_bTI
+
     # Final RGB conversion (Eq. (24))
     if use_yuv:
         I_out = np.stack([Y_in + 1.13983 * K_rout,

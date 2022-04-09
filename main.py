@@ -18,8 +18,8 @@ img = img_as_float32(io.imread(impath))
 
 
 rho = np.array([-0.25, 1.375, -0.125], dtype=img.dtype)
-L_hor = 2
-L_ver = 2
+L_hor = 7
+L_ver = 4
 alpha_R = 0.5
 alpha_B = 1.0
 beta_R = 1.0
@@ -28,6 +28,20 @@ tau = 15. / 255
 gamma_1 = 128. / 255
 gamma_2 = 64. / 255
 
+print('Use the parameters:')
+print('  rho:    ', list(rho))
+print('  L_ver:  ', L_ver)
+print('  L_hor:  ', L_hor)
+print('  alpha_R:', alpha_R)
+print('  alpha_B:', alpha_B)
+print('  beta_R: ', beta_R)
+print('  beta_B: ', beta_B)
+print('  gamma_1:', gamma_1)
+print('  gamma_2:', gamma_2)
+print('  tau:', tau)
+
+
+print('Start restoration...')
 tic = time.time()
 impred = filter.chromatic_removal(img, L_hor, L_ver, rho, tau, alpha_R, alpha_B, beta_R, beta_B, 
                                   gamma_1, gamma_2)
