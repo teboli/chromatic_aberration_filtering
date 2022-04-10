@@ -1,5 +1,5 @@
 
-# False color filtering
+# Blind Chromatic Aberration Correction with False Color Filtering
 
 | <img src="/images/teaser_blurry.png" width="230px"/> | <img src="images/teaser_restored.png" width="230px"/> |
 |:----------------------------------------------------:|:-----------------------------------------------------:|
