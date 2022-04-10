@@ -1,7 +1,7 @@
 
 # False color filtering
 
-| [!Before](/images/teaser_blurry.png) | [!After](images/teaser_restored.png) |
+| ![Before](/images/teaser_blurry.png) | ![After](images/teaser_restored.png) |
 | Aberrated image | Filtered result |
 
 This is a repository containing a non-official Cython-based implementation of the IEEE Transactions on Image
