@@ -1,4 +1,3 @@
-import numpy as np
 cimport cython
 
 # "cimport" is used to import special compile-time information

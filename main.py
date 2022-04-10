@@ -1,20 +1,14 @@
 import numpy as np
-from skimage import io, transform, img_as_float32, img_as_ubyte
+from skimage import io, img_as_float32, img_as_ubyte
 import matplotlib.pyplot as plt
 import time
-import tqdm
 
 # import filter
 import filter_cython as filter
-# import filter_recursive as filter
 
 
-# impath = 'facade_blurry.jpg'
 impath = 'bridge_blurry.jpg'
-# img = io.imread(impath)
 img = img_as_float32(io.imread(impath))
-# img = transform.rescale(img, scale=(0.25, 0.25, 1))
-# img = transform.rescale(img, scale=(0.5, 0.5, 1))
 
 
 rho = np.array([-0.25, 1.375, -0.125], dtype=img.dtype)
