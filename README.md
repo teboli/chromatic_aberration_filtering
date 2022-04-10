@@ -1,6 +1,9 @@
 
 # False color filtering
 
+| [!Before](/images/teaser_blurry.png) | [!After](images/teaser_restored.png) |
+| Aberrated image | Filtered result |
+
 This is a repository containing a non-official Cython-based implementation of the IEEE Transactions on Image
 Processing 2013 article *Correction of Axial and Lateral Chromatic Aberration With False Color Filter* by
 Joonyoung Chang, Hee Kang and Moon Gi Kang.

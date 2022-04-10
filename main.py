@@ -7,7 +7,7 @@ import time
 import filter_cython as filter
 
 
-impath = 'bridge_blurry.jpg'
+impath = 'images/bridge_blurry.jpg'
 img = img_as_float32(io.imread(impath))
 
 
