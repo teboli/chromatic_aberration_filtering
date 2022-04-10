@@ -1,8 +1,9 @@
 
 # False color filtering
 
-| ![Before](/images/teaser_blurry.png) | ![After](images/teaser_restored.png) |
-| Aberrated image | Filtered result |
+| <img src="/images/teaser_blurry.png" width="230px"/> | <img src="images/teaser_restored.png" width="230px"/> |
+|:----------------------------------------------------:|:-----------------------------------------------------:|
+|                <i>Aberrated image</i>                |                <i>Filtered result</i>                 |
 
 This is a repository containing a non-official Cython-based implementation of the IEEE Transactions on Image
 Processing 2013 article *Correction of Axial and Lateral Chromatic Aberration With False Color Filter* by
