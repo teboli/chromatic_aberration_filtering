@@ -9,13 +9,13 @@
 
 
 # with open MP
-from setuptools import Extension, setup
+from setuptools import Extension, setup, find_packages
 from Cython.Build import cythonize
 
 ext_modules = [
     Extension(
         "filter_cython",
-        ["filter_cython.pyx"],
+        ["false_color_filtering/filter_cython.pyx"],
         extra_compile_args=['-fopenmp'],
         extra_link_args=['-fopenmp'],
     )
@@ -23,5 +23,11 @@ ext_modules = [
 
 setup(
     name='filter-cython-parallel',
+    version="1.0.0",
+    author="Thomas Eboli",
+    author_email="thomas.eboli@ens-paris-saclay.fr",
+    url="https://github.com/teboli/chromatic_aberration_filtering",
+    packages=find_packages(),
+    include_package_data=True,
     ext_modules=cythonize(ext_modules),
 )
