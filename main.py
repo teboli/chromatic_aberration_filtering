@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 import time
 
 # import filter
-import filter_cython as filter
+# import filter_cython as filter
+# from chromatic_aberration_filtering import filter_cython as filter
+from chromatic_aberration_filtering import chromatic_removal
 
 
 impath = 'images/bridge_blurry.jpg'
@@ -37,7 +39,8 @@ print('  tau:', tau)
 
 print('Start restoration...')
 tic = time.time()
-impred = filter.chromatic_removal(img, L_hor, L_ver, rho, tau, alpha_R, alpha_B, beta_R, beta_B, 
+# impred = filter.chromatic_removal(img, L_hor, L_ver, rho, tau, alpha_R, alpha_B, beta_R, beta_B, 
+impred = chromatic_removal(img, L_hor, L_ver, rho, tau, alpha_R, alpha_B, beta_R, beta_B, 
                                   gamma_1, gamma_2)
 toc = time.time()
 print("Elapsed time: %2.2f sec" % (toc - tic))
