@@ -19,11 +19,13 @@ research please cite our paper  (to appear).
 
 ### Testing the code
 
-You can test the code with a test JPEG image containing chromatic aberrations. First, compile Cython code with
+You can test the code with a test JPEG image containing chromatic aberrations. First, compile Cython code 
+and install the python package with
 > bash compile_cython.sh
 
 
-This will create in the main directory a filter_cython.c file. Second, you can restore the image with the command line:
+This will create in the *chromatic_aberration_filtering* directory a filter_cython.c file. The file is already shipped with this code. If you do not want
+to run cython, simply set to False the *USE_CYTHON* argument in setup.py. Second, you can restore the image with the command line:
 > python main.py
 
 This will save a 8-bit PNG file containing the restored image. The method can be also used on 16-bit TIFF images
@@ -39,6 +41,13 @@ Please run the pip install command below to install the requirements:
 The code contains two main modules: filter.py that is a numpy-pure implemention of the paper (and is extremely slow),
 and filter_cython.pyx that contains the sources for the Cython implementation (recommanded).
 
+After installation/compilation, you can import in any project this code by importing the package
+> import chromatic_aberration_filtering
+
+The actual function is
+> chromatic_aberration_filtering.chromatic_removal
+
+Please refer to main.py to see an example of use.
 
 ### Contact 
 

@@ -3,9 +3,6 @@ from skimage import io, img_as_float32, img_as_ubyte
 import matplotlib.pyplot as plt
 import time
 
-# import filter
-# import filter_cython as filter
-# from chromatic_aberration_filtering import filter_cython as filter
 from chromatic_aberration_filtering import chromatic_removal
 
 
@@ -39,7 +36,6 @@ print('  tau:', tau)
 
 print('Start restoration...')
 tic = time.time()
-# impred = filter.chromatic_removal(img, L_hor, L_ver, rho, tau, alpha_R, alpha_B, beta_R, beta_B, 
 impred = chromatic_removal(img, L_hor, L_ver, rho, tau, alpha_R, alpha_B, beta_R, beta_B, 
                                   gamma_1, gamma_2)
 toc = time.time()
