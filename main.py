@@ -3,7 +3,7 @@ from skimage import io, img_as_float32, img_as_ubyte
 import matplotlib.pyplot as plt
 import time
 
-from chromatic_aberration_filtering import chromatic_removal
+from filter_cython import chromatic_removal
 
 
 impath = 'images/bridge_blurry.jpg'
