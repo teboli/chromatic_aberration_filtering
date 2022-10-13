@@ -305,9 +305,9 @@ cdef void ti_and_ca_filtering1D(DTYPE_t[:, ::1] X_in, DTYPE_t[:, ::1] G_in, DTYP
                     W_K[i, l] = 0
 
                 ## Gradients' weights (Eq. (12))
-                W_K[i, l] /= fabs(grad_G[i, j + l]) + \
-                             fmax(fabs(grad_X[i, j + l]), alpha_X * fabs(K_TI[i, l])) + \
-                             fabs(Y_in[i, j] - Y_in[i, j + l])  + eps
+                W_K[i, l] /= fabs(grad_G[i, j + l - L]) + \
+                             fmax(fabs(grad_X[i, j + l - L]), alpha_X * fabs(K_TI[i, l])) + \
+                             fabs(Y_in[i, j] - Y_in[i, j + l - L])  + eps
 
                 ## Linear filtering with clipping (Eqs. (9) and (10))
                 # K_hor[i, j] = K_hor[i, j] + W_K[i, l] * clip(K_TI[i, l], K_TI[i, L])

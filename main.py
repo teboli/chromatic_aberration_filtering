@@ -7,11 +7,12 @@ from filter_cython import chromatic_removal
 
 
 impath = 'images/bridge_blurry.jpg'
+# impath = 'images/facade_blurry.jpg'
 img = img_as_float32(io.imread(impath))
 
 
 rho = np.array([-0.25, 1.375, -0.125], dtype=img.dtype)
-L_hor = 7
+L_hor = 14
 L_ver = 4
 alpha_R = 0.5
 alpha_B = 1.0
