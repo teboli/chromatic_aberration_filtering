@@ -5,6 +5,7 @@
 |:----------------------------------------------------:|:-----------------------------------------------------:|
 |                <i>Aberrated image</i>                |                <i>Filtered result</i>                 |
 
+
 This is a repository containing a non-official Cython-based implementation of the IEEE Transactions on Image
 Processing 2013 article *Correction of Axial and Lateral Chromatic Aberration With False Color Filter* by
 Joonyoung Chang, Hee Kang and Moon Gi Kang.
@@ -15,7 +16,11 @@ implementation leverages the multi-threading abilities of Cython to achieve rest
 than 1 second.
 
 This implementation is part of an IPOL paper describing in the detail the method. If this code is useful to your 
-research please cite our paper  (to appear).
+research please cite our paper [paper (to appear)]<a href="https://ipolcore.ipol.im/demo/clientApp/demo.html?id=77777000378">[demo]</a>
+
+### News
+
+10/19: Try the <a href="https://ipolcore.ipol.im/demo/clientApp/demo.html?id=77777000378">online demo</a> using this code!
 
 ### Testing the code
 
