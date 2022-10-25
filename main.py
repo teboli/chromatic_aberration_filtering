@@ -35,12 +35,18 @@ print('  gamma_2:', gamma_2)
 print('  tau:', tau)
 
 
+# padding to remove gray lines at the borders
+img = np.pad(img, [(L_ver, L_ver), (L_hor, L_hor), (0, 0)])
+
 print('Start restoration...')
 tic = time.time()
 impred = chromatic_removal(img, L_hor, L_ver, rho, tau, alpha_R, alpha_B, beta_R, beta_B, 
                                   gamma_1, gamma_2)
 toc = time.time()
 print("Elapsed time: %2.2f sec" % (toc - tic))
+
+# Cropping the borders
+impred = impred[L_ver:-L_ver, L_hor:-L_hor]
 
 plt.figure()
 plt.subplot(1, 2, 1)

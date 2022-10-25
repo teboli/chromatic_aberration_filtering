@@ -69,34 +69,24 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, int L_hor, int L_ver,
     cdef DTYPE_t[:, ::1] K_rTI_hor = np.empty((M, N), dtype=DTYPE)
     cdef DTYPE_t[:, ::1] R_max_hor = np.empty((M, N), dtype=DTYPE)
     cdef DTYPE_t[:, ::1] R_min_hor = np.empty((M, N), dtype=DTYPE)
-    # K_r_hor, K_rTI_hor, R_max_hor, R_min_hor = ti_and_ca_filtering1D(R_in, G_in, Y_in, L_hor, rho, tau, alpha_R)
     ti_and_ca_filtering1D(R_in, G_in, Y_in, L_hor, rho, alpha_R, tau, K_r_hor, K_rTI_hor, R_max_hor, R_min_hor)
     cdef DTYPE_t[:, ::1] K_b_hor   = np.empty((M, N), dtype=DTYPE)
     cdef DTYPE_t[:, ::1] K_bTI_hor = np.empty((M, N), dtype=DTYPE)
     cdef DTYPE_t[:, ::1] B_max_hor = np.empty((M, N), dtype=DTYPE)
     cdef DTYPE_t[:, ::1] B_min_hor = np.empty((M, N), dtype=DTYPE)
-    # K_b_hor, K_bTI_hor, B_max_hor, B_min_hor = ti_and_ca_filtering1D(B_in, G_in, Y_in, L_hor, rho, tau, alpha_B)
     ti_and_ca_filtering1D(B_in, G_in, Y_in, L_hor, rho, alpha_B, tau, K_b_hor, K_bTI_hor, B_max_hor, B_min_hor)
 
     # Vertical pass
     cdef DTYPE_t[:, ::1] K_r_ver   = np.empty((N, M), dtype=DTYPE)
     cdef DTYPE_t[:, ::1] K_rTI_ver = np.empty((N, M), dtype=DTYPE)
-    # cdef DTYPE_t[:, ::1] K_r_ver   = transpose(K_r_hor)
-    # cdef DTYPE_t[:, ::1] K_rTI_ver = transpose(K_rTI_hor)
     cdef DTYPE_t[:, ::1] R_max_ver = np.empty((N, M), dtype=DTYPE)
     cdef DTYPE_t[:, ::1] R_min_ver = np.empty((N, M), dtype=DTYPE)
-    # K_r_ver, K_rTI_ver, R_max_ver, R_min_ver = ti_and_ca_filtering1D(transpose(R_in), transpose(G_in), transpose(Y_in),
-    #                                                                  L_ver, rho, tau, alpha_R)
     ti_and_ca_filtering1D(transpose(R_in), transpose(G_in), transpose(Y_in), L_ver, rho, alpha_R, tau,
                           K_r_ver, K_rTI_ver, R_max_ver, R_min_ver)
     cdef DTYPE_t[:, ::1] K_b_ver   = np.empty((N, M), dtype=DTYPE)
     cdef DTYPE_t[:, ::1] K_bTI_ver = np.empty((N, M), dtype=DTYPE)
-    # cdef DTYPE_t[:, ::1] K_b_ver   = transpose(K_b_hor)
-    # cdef DTYPE_t[:, ::1] K_bTI_ver = transpose(K_bTI_hor)
     cdef DTYPE_t[:, ::1] B_max_ver = np.empty((N, M), dtype=DTYPE)
     cdef DTYPE_t[:, ::1] B_min_ver = np.empty((N, M), dtype=DTYPE)
-    # K_b_ver, K_bTI_ver, B_max_ver, B_min_ver = ti_and_ca_filtering1D(transpose(B_in), transpose(G_in), transpose(Y_in),
-    #                                                                  L_ver, rho, tau, alpha_B)
     ti_and_ca_filtering1D(transpose(B_in), transpose(G_in), transpose(Y_in), L_ver, rho, alpha_B, tau,
                           K_b_ver, K_bTI_ver, B_max_ver, B_min_ver)
 
@@ -113,7 +103,6 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, int L_hor, int L_ver,
     # Build the 2D images from the vertically and the horizontally FC filtered images (Eqs. (16))
     # Kb
     cdef DTYPE_t[:, ::1] K_b = K_b_ver
-    # for i in range(0, M, 1):
     for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
             if fabs(K_b_hor[i, j]) < fabs(K_b_ver[i, j]):
@@ -121,18 +110,16 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, int L_hor, int L_ver,
 
     #Kr
     cdef DTYPE_t[:, ::1] K_r = K_r_ver
-    # for i in range(0, M, 1):
     for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
             if fabs(K_r_hor[i, j]) < fabs(K_r_ver[i, j]):
                 K_r[i, j] = K_r_hor[i, j]
 
     # Build the 2D images from the vertically and the horizontally TI filtered images (Eqs. (18))
-    # Kb
+    # Kb_TI
     cdef DTYPE_t[:, ::1] K_bTI = K_bTI_ver
     cdef DTYPE_t[:, ::1] B_max = B_max_ver
     cdef DTYPE_t[:, ::1] B_min = B_min_ver
-    # for i in range(0, M, 1):
     for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
             if fabs(K_bTI_hor[i, j]) < fabs(K_bTI_ver[i, j]):
@@ -140,11 +127,10 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, int L_hor, int L_ver,
                 B_max[i, j] = B_max_hor[i, j]
                 B_min[i, j] = B_min_hor[i, j]
 
-    # Kr
+    # Kr_TI
     cdef DTYPE_t[:, ::1] K_rTI = K_rTI_ver
     cdef DTYPE_t[:, ::1] R_max = R_max_ver
     cdef DTYPE_t[:, ::1] R_min = R_min_ver
-    # for i in range(0, M, 1):
     for i in prange(M, nogil=True):
         for j in range(0, N, 1):
             if fabs(K_rTI_hor[i, j]) < fabs(K_rTI_ver[i, j]):
@@ -157,9 +143,6 @@ def chromatic_removal(np.ndarray[DTYPE_t, ndim=3] I_in, int L_hor, int L_ver,
     cdef DTYPE_t[:, ::1] K_bout = np.empty((M, N), dtype=DTYPE)
     arbitration(K_r, K_rTI, R_in, G_in, R_max, R_min, beta_R, L_hor, L_ver, gamma_1, gamma_2, K_rout)
     arbitration(K_b, K_bTI, B_in, G_in, B_max, B_min, beta_B, L_hor, L_ver, gamma_1, gamma_2, K_bout)
-
-    # K_rout = K_r
-    # K_bout = K_b
 
     # Final RGB conversion (Eq. (24))
     cdef DTYPE_t[:, :, ::1] I_out = np.empty((M, N, 3), dtype=DTYPE)
@@ -216,7 +199,22 @@ cdef DTYPE_t clip(DTYPE_t K, DTYPE_t K_ref) nogil:
 cdef void ti_and_ca_filtering1D(DTYPE_t[:, ::1] X_in, DTYPE_t[:, ::1] G_in, DTYPE_t[:, ::1] Y_in, int L,
                                 DTYPE_t[::1] rho, DTYPE_t alpha_X, DTYPE_t tau, DTYPE_t[:, ::1] K_hor,
                                 DTYPE_t[:, ::1] K_TI_hor, DTYPE_t[:, ::1] X_max, DTYPE_t[:, ::1] X_min):
-
+    """
+    1D separable successive TI and FC 1D filtering.
+    Inputs:
+        X_in: Input red or blue image
+        G_in: Input green image
+        Y_in: Input luma image
+        L: half-size of the 1D slice
+        rho: The three coefficients for prefiltering in TI stage
+        alpha_X: Regularization parameter in color gradient in FC stage
+        tau: Threshold on chroma singla in FC stage
+    Outputs:
+        K_hor: Output FC filtered image
+        K_TI_hor: Output TI filtered image
+        X_max: Output local maxima in TI stage
+        X_min: Output local minima in TI stage
+    """
     cdef Py_ssize_t M, N, i, j
     cdef int l = 0
     cdef int LL = 2 * L + 1
@@ -329,12 +327,22 @@ cdef void ti_and_ca_filtering1D(DTYPE_t[:, ::1] X_in, DTYPE_t[:, ::1] G_in, DTYP
 cdef void arbitration(DTYPE_t[:, ::1] K, DTYPE_t[:, ::1] K_TI, DTYPE_t[:, ::1] X, DTYPE_t[:, ::1] G, DTYPE_t[:, ::1] X_max,
                       DTYPE_t[:, ::1] X_min, DTYPE_t beta_X, int L_hor, int L_ver, DTYPE_t gamma_1,
                       DTYPE_t gamma_2, DTYPE_t[:, ::1] K_out):
+    """
+    Arbitration stage between the TI and FC filtered images.
+    Inputs:
+        K: Output of FC stage, merge of horizontal and vertical filetered images
+
+    """
+
 
     cdef Py_ssize_t M, N, i, j
     cdef int l = 0
     M = X.shape[0]
     N = X.shape[1]
 
+    #####################
+    ## Horizontal pass ##
+    #####################
     cdef int L = L_hor
 
     ## Compute the Contrast images (Eq. (20))
@@ -375,6 +383,10 @@ cdef void arbitration(DTYPE_t[:, ::1] K, DTYPE_t[:, ::1] K_TI, DTYPE_t[:, ::1] X
                 Xp_min_hor[i] = X_Emin_hor[i]
             X_contrast_hor[i, j] = Xp_max_hor[i] - Xp_min_hor[i]
 
+
+    ###################
+    ## Vertical pass ##
+    ###################
     L = L_ver
 
     cdef DTYPE_t[:, ::1] X_contrast_ver = np.empty((N, M), dtype=DTYPE)  # (N, M), vertical pass
@@ -431,6 +443,5 @@ cdef void arbitration(DTYPE_t[:, ::1] K, DTYPE_t[:, ::1] K_TI, DTYPE_t[:, ::1] X
     # for i in range(0, M, 1):
     for i in prange(0, M, 1, nogil=True):
         for j in range(0, N, 1):
-            # alpha_K[i] = fmin(fmax(X_contrast[i, j], 0.0) / gamma_1, 1.0)
             alpha_K[i] = fmin(fmax(X_contrast[i, j], 0.0) / fmin(fmax(X_max[i, j] - X_min[i, j], gamma_2), gamma_1), 1.0)
             K_out[i, j] = (1 - alpha_K[i]) * K_TI[i, j] + alpha_K[i] * K[i, j]
