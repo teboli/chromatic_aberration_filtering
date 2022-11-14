@@ -16,11 +16,11 @@ implementation leverages the multi-threading abilities of Cython to achieve rest
 than 1 second.
 
 This implementation is part of an IPOL paper describing in the detail the method. If this code is useful to your 
-research please cite our paper [paper (to appear)]<a href="https://ipolcore.ipol.im/demo/clientApp/demo.html?id=77777000378">[demo]</a>
+research please cite our paper [paper (to appear)]<a href="https://ipolcore.ipol.im/demo/clientApp/demo.html?id=443">[demo]</a>
 
 ### News
 
-10/19: Try the <a href="https://ipolcore.ipol.im/demo/clientApp/demo.html?id=77777000378">online demo</a> using this code!
+10/19: Try the <a href="https://ipolcore.ipol.im/demo/clientApp/demo.html?id=443">online demo</a> using this code!
 
 ### Testing the code
 
